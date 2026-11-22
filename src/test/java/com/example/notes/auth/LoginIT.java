@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "app.jwt.ttl-seconds=3600")
+@SpringBootTest(properties = {"app.jwt.ttl-seconds=3600", "app.login-rate-limit.attempts=100"})
 @AutoConfigureMockMvc
 @Import({MySqlTestConfiguration.class, LoginIT.ProtectedEndpoint.class})
 class LoginIT {
