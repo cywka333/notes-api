@@ -1,0 +1,8 @@
+CREATE TABLE users (
+    id BINARY(16) NOT NULL,
+    login VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_users_login UNIQUE (login)
+);
