@@ -6,7 +6,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
@@ -15,6 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.UUID;
 
 @Configuration(proxyBeanMethods = false)
 public class JwtConfiguration {
@@ -31,6 +39,17 @@ public class JwtConfiguration {
         return new SecretKeySpec(key, "HmacSHA256");
     }
 
+    private static boolean isUserId(String subject) {
+        if (subject == null || subject.length() != 36) {
+            return false;
+        }
+        try {
+            return UUID.fromString(subject).toString().equalsIgnoreCase(subject);
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
     @Bean
     JwtEncoder jwtEncoder(SecretKey key) {
         return new NimbusJwtEncoder(new ImmutableSecret<>(key));
@@ -43,7 +62,7 @@ public class JwtConfiguration {
                 new JwtIssuerValidator(ISSUER),
                 new JwtTimestampValidator(Duration.ZERO),
                 new JwtClaimValidator<Instant>(JwtClaimNames.EXP, Objects::nonNull),
-                new JwtClaimValidator<String>(JwtClaimNames.SUB, StringUtils::hasText)));
+                new JwtClaimValidator<>(JwtClaimNames.SUB, JwtConfiguration::isUserId)));
         return decoder;
     }
 }
