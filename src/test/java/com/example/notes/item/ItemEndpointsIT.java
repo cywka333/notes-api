@@ -1,17 +1,8 @@
 package com.example.notes.item;
 
-import com.example.notes.item.permission.ItemPermission;
-import com.example.notes.item.permission.ItemPermissionRepository;
-import com.example.notes.item.permission.PermissionRole;
-import com.example.notes.support.MySqlTestConfiguration;
-import com.example.notes.user.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,8 +11,6 @@ import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,16 +22,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "app.login-rate-limit.attempts=100")
-@AutoConfigureMockMvc
-@Import(MySqlTestConfiguration.class)
-class ItemEndpointsIT {
+class ItemEndpointsIT extends ItemHttpTestSupport {
 
-    @Autowired private MockMvc mvc;
-    @Autowired private ObjectMapper json;
-    @Autowired private ItemRepository items;
-    @Autowired private UserRepository users;
-    @Autowired private ItemPermissionRepository permissions;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private JwtEncoder encoder;
 
@@ -114,14 +95,16 @@ class ItemEndpointsIT {
         JsonNode hiddenShared = create(other, Map.of("title", "Deleted after sharing"));
         create(other, Map.of("title", "Private"));
 
-        share(mine, other, PermissionRole.EDITOR);
-        share(editable, caller, PermissionRole.EDITOR);
-        share(readable, caller, PermissionRole.VIEWER);
-        share(hiddenShared, caller, PermissionRole.VIEWER);
-        // The sharing and deletion endpoints come later. Set up their persisted state directly.
+        share(caller, mine.required("id").asText(), other.id(), "EDITOR").andExpect(status().isCreated());
+        share(other, editable.required("id").asText(), caller.id(), "EDITOR").andExpect(status().isCreated());
+        share(other, readable.required("id").asText(), caller.id(), "VIEWER").andExpect(status().isCreated());
+        share(other, hiddenShared.required("id").asText(), caller.id(), "VIEWER").andExpect(status().isCreated());
+
         for (JsonNode deleted : List.of(hiddenOwned, hiddenShared)) {
             jdbc.update("UPDATE items SET deleted = true WHERE id = UUID_TO_BIN(?)", deleted.required("id").asText());
         }
+
+        share(other, hiddenShared.required("id").asText(), caller.id(), "EDITOR").andExpect(status().isNotFound());
 
         JsonNode visible = list(caller);
         assertThat(visible).hasSize(3);
@@ -153,41 +136,5 @@ class ItemEndpointsIT {
             assertThat(entry.required(key)).as(key).isEqualTo(created.required(key));
         }
         assertThat(entry.required("myRole").asText()).isEqualTo(expectedRole);
-    }
-
-    private Account account() throws Exception {
-        String login = "item-" + UUID.randomUUID();
-        String credentials = json.writeValueAsString(Map.of("login", login, "password", "test-password"));
-        JsonNode registered = body(mvc.perform(post("/register").contentType(MediaType.APPLICATION_JSON)
-                .content(credentials)).andExpect(status().isCreated()));
-        JsonNode loggedIn = body(mvc.perform(post("/login").contentType(MediaType.APPLICATION_JSON)
-                .content(credentials)).andExpect(status().isOk()));
-        return new Account(UUID.fromString(registered.required("id").asText()), login, loggedIn.required("token").asText());
-    }
-
-    private void share(JsonNode note, Account recipient, PermissionRole role) {
-        Item item = items.findById(UUID.fromString(note.required("id").asText())).orElseThrow();
-        permissions.save(new ItemPermission(item, users.getReferenceById(recipient.id()), role));
-    }
-
-    private ResultActions postItem(Account account, String request) throws Exception {
-        return mvc.perform(post("/items").header(HttpHeaders.AUTHORIZATION, "Bearer " + account.token())
-                .contentType(MediaType.APPLICATION_JSON).content(request));
-    }
-
-    private JsonNode create(Account account, Map<String, ?> request) throws Exception {
-        return body(postItem(account, json.writeValueAsString(request)).andExpect(status().isCreated()));
-    }
-
-    private JsonNode list(Account account) throws Exception {
-        return body(mvc.perform(get("/items").header(HttpHeaders.AUTHORIZATION, "Bearer " + account.token()))
-                .andExpect(status().isOk()));
-    }
-
-    private JsonNode body(ResultActions result) throws Exception {
-        return json.readTree(result.andReturn().getResponse().getContentAsByteArray());
-    }
-
-    private record Account(UUID id, String login, String token) {
     }
 }

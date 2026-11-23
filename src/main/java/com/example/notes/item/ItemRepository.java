@@ -1,5 +1,7 @@
 package com.example.notes.item;
 
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +14,10 @@ public interface ItemRepository extends Repository<Item, UUID> {
     Item save(Item item);
 
     Optional<Item> findById(UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select i from Item i where i.id = :id")
+    Optional<Item> findForPermissionChange(@Param("id") UUID id);
 
     List<Item> findAllByOwnerId(UUID ownerId);
 

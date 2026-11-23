@@ -2,8 +2,20 @@ package com.example.notes.item.permission;
 
 import com.example.notes.item.Item;
 import com.example.notes.user.User;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -27,6 +39,9 @@ public class ItemPermission {
     @Column(nullable = false)
     private PermissionRole role;
 
+    @Column(name = "granted_at", nullable = false, updatable = false)
+    private Instant grantedAt;
+
     protected ItemPermission() {
     }
 
@@ -34,6 +49,7 @@ public class ItemPermission {
         this.item = Objects.requireNonNull(item);
         this.user = Objects.requireNonNull(user);
         this.role = Objects.requireNonNull(role);
+        this.grantedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
     }
 
     public UUID getId() {
@@ -42,6 +58,10 @@ public class ItemPermission {
 
     public PermissionRole getRole() {
         return role;
+    }
+
+    public Instant getGrantedAt() {
+        return grantedAt;
     }
 
     public void changeRole(PermissionRole role) {
