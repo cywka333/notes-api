@@ -99,10 +99,8 @@ class ItemEndpointsIT extends ItemHttpTestSupport {
         share(other, editable.required("id").asText(), caller.id(), "EDITOR").andExpect(status().isCreated());
         share(other, readable.required("id").asText(), caller.id(), "VIEWER").andExpect(status().isCreated());
         share(other, hiddenShared.required("id").asText(), caller.id(), "VIEWER").andExpect(status().isCreated());
-
-        for (JsonNode deleted : List.of(hiddenOwned, hiddenShared)) {
-            jdbc.update("UPDATE items SET deleted = true WHERE id = UUID_TO_BIN(?)", deleted.required("id").asText());
-        }
+        deleteItem(caller, hiddenOwned.required("id").asText()).andExpect(status().isNoContent());
+        deleteItem(other, hiddenShared.required("id").asText()).andExpect(status().isNoContent());
 
         share(other, hiddenShared.required("id").asText(), caller.id(), "EDITOR").andExpect(status().isNotFound());
 

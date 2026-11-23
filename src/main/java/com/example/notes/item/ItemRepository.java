@@ -20,7 +20,7 @@ public interface ItemRepository extends Repository<Item, UUID> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from Item i where i.id = :id")
-    Optional<Item> findForPermissionChange(@Param("id") UUID id);
+    Optional<Item> findByIdForUpdate(@Param("id") UUID id);
 
     List<Item> findAllByOwnerId(UUID ownerId);
 

@@ -28,9 +28,7 @@ class ItemSharingService {
 
     @Transactional
     Result share(UUID itemId, UUID callerId, UUID recipientId, PermissionRole role) {
-        Item item = items.findForPermissionChange(itemId)
-                .orElseThrow(() -> new SharingTargetNotFoundException("Item not found."));
-        access.requireOwner(item, callerId);
+        Item item = requireOwnedItemForPermissionChange(itemId, callerId);
         if (callerId.equals(recipientId)) {
             throw new SelfSharingException();
         }
@@ -58,7 +56,7 @@ class ItemSharingService {
     }
 
     private Item requireOwnedItemForPermissionChange(UUID itemId, UUID callerId) {
-        Item item = items.findForPermissionChange(itemId)
+        Item item = items.findByIdForUpdate(itemId)
                 .orElseThrow(() -> new SharingTargetNotFoundException("Item not found."));
         access.requireOwner(item, callerId);
         return item;

@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -53,6 +54,11 @@ abstract class ItemHttpTestSupport {
 
     JsonNode create(Account account, Map<String, ?> request) throws Exception {
         return body(postItem(account, json.writeValueAsString(request)).andExpect(status().isCreated()));
+    }
+
+    ResultActions deleteItem(Account caller, String itemId) throws Exception {
+        return mvc.perform(delete("/items/{id}", itemId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + caller.token()));
     }
 
     JsonNode list(Account account) throws Exception {

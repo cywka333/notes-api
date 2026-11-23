@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -128,7 +129,7 @@ class ItemEditingIT extends ItemHttpTestSupport {
         Account owner = account();
         edit(owner, missing.toString(), Map.of("version", 0)).andExpect(status().isNotFound());
         String id = create(owner, Map.of("title", "Deleted")).required("id").asText();
-        jdbc.update("UPDATE items SET deleted = true WHERE id = UUID_TO_BIN(?)", id);
+        deleteItem(owner, id).andExpect(status().isNoContent());
         edit(owner, id, Map.of("title", "Restore", "version", 0)).andExpect(status().isNotFound());
     }
 
@@ -139,6 +140,7 @@ class ItemEditingIT extends ItemHttpTestSupport {
         String id = create(owner, Map.of("title", "Before")).required("id").asText();
         share(owner, id, editor.id(), "EDITOR").andExpect(status().isCreated());
 
+        // Let both real requests read version zero before either can write to MySQL.
         var readers = new CyclicBarrier(2);
         var checks = new AtomicInteger();
         doAnswer(call -> {
@@ -162,6 +164,36 @@ class ItemEditingIT extends ItemHttpTestSupport {
                     .isEqualTo(list(owner).get(0).required("title"));
         }
         assertThat(revisions(id)).isEqualTo(2); // ADD and the winning MOD
+    }
+
+    @Test
+    void anEditAlreadyInFlightCannotRestoreADeletedItem() throws Exception {
+        Account owner = account();
+        Account editor = account();
+        String id = create(owner, Map.of("title", "Before")).required("id").asText();
+        share(owner, id, editor.id(), "EDITOR").andExpect(status().isCreated());
+
+        var editorHasRead = new CountDownLatch(1);
+        var ownerHasDeleted = new CountDownLatch(1);
+        doAnswer(call -> {
+            call.callRealMethod();
+            editorHasRead.countDown();
+            assertThat(ownerHasDeleted.await(10, TimeUnit.SECONDS)).isTrue();
+            return null;
+        }).when(access).requireEdit(any(), any());
+
+        try (var pool = Executors.newSingleThreadExecutor()) {
+            var pending = pool.submit(() -> edit(editor, id, Map.of("title", "Late edit", "version", 0)));
+            try {
+                assertThat(editorHasRead.await(10, TimeUnit.SECONDS)).isTrue();
+                deleteItem(owner, id).andExpect(status().isNoContent());
+            } finally {
+                ownerHasDeleted.countDown();
+            }
+            pending.get(15, TimeUnit.SECONDS).andExpect(status().isNotFound());
+        }
+        assertThat(list(owner)).isEmpty();
+        assertThat(revisions(id)).isEqualTo(2); // ADD and DEL
     }
 
     private int revisions(String id) {
