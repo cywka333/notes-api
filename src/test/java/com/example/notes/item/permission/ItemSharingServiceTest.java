@@ -96,4 +96,37 @@ class ItemSharingServiceTest {
                 .isInstanceOf(SharingTargetNotFoundException.class);
         verify(permissions, never()).save(any());
     }
+
+    @Test
+    void ownerCanRevokeAnExistingGrant() {
+        when(permissions.deleteGrant(itemId, recipientId)).thenReturn(1);
+
+        service.revoke(itemId, ownerId, recipientId);
+
+        verify(permissions).deleteGrant(itemId, recipientId);
+    }
+
+    @Test
+    void aNonOwnerCannotRemoveAGrant() {
+        assertThatThrownBy(() -> service.revoke(itemId, UUID.randomUUID(), recipientId))
+                .isInstanceOf(AccessDeniedException.class);
+        verifyNoInteractions(permissions);
+    }
+
+    @Test
+    void revokingAnAbsentGrantReportsNotFound() {
+        when(permissions.deleteGrant(itemId, recipientId)).thenReturn(0);
+
+        assertThatThrownBy(() -> service.revoke(itemId, ownerId, recipientId))
+                .isInstanceOf(SharingTargetNotFoundException.class);
+    }
+
+    @Test
+    void aMissingItemIsDetectedBeforeDeletingAGrant() {
+        when(items.findForPermissionChange(itemId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.revoke(itemId, ownerId, recipientId))
+                .isInstanceOf(SharingTargetNotFoundException.class);
+        verifyNoInteractions(permissions);
+    }
 }

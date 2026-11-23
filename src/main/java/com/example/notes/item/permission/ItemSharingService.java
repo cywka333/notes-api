@@ -49,6 +49,21 @@ class ItemSharingService {
                 existing.isEmpty());
     }
 
+    @Transactional
+    void revoke(UUID itemId, UUID callerId, UUID recipientId) {
+        requireOwnedItemForPermissionChange(itemId, callerId);
+        if (permissions.deleteGrant(itemId, recipientId) == 0) {
+            throw new SharingTargetNotFoundException("Permission not found.");
+        }
+    }
+
+    private Item requireOwnedItemForPermissionChange(UUID itemId, UUID callerId) {
+        Item item = items.findForPermissionChange(itemId)
+                .orElseThrow(() -> new SharingTargetNotFoundException("Item not found."));
+        access.requireOwner(item, callerId);
+        return item;
+    }
+
     record Result(GrantedPermission permission, boolean created) {
     }
 }
