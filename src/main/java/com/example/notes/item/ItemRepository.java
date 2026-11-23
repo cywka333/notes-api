@@ -11,7 +11,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ItemRepository extends Repository<Item, UUID> {
+
     Item save(Item item);
+
+    void flush();
 
     Optional<Item> findById(UUID id);
 
