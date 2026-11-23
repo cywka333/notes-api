@@ -40,7 +40,7 @@ class ItemSharingServiceTest {
     @BeforeEach
     void setUpItem() {
         when(owner.getId()).thenReturn(ownerId);
-        when(items.findForPermissionChange(itemId)).thenReturn(Optional.of(item));
+        when(items.findByIdForUpdate(itemId)).thenReturn(Optional.of(item));
     }
 
     @Test
@@ -123,7 +123,7 @@ class ItemSharingServiceTest {
 
     @Test
     void aMissingItemIsDetectedBeforeDeletingAGrant() {
-        when(items.findForPermissionChange(itemId)).thenReturn(Optional.empty());
+        when(items.findByIdForUpdate(itemId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.revoke(itemId, ownerId, recipientId))
                 .isInstanceOf(SharingTargetNotFoundException.class);

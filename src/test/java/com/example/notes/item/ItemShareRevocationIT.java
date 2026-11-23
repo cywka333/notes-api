@@ -2,9 +2,7 @@ package com.example.notes.item;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.List;
@@ -23,8 +21,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ItemShareRevocationIT extends ItemHttpTestSupport {
 
     private static final String REVOKE = "/items/{id}/share/{userId}";
-
-    @Autowired private JdbcTemplate jdbc;
 
     @Test
     void revokesOnlyTheSpecifiedGrantAndAllowsTheOwnerToShareAgain() throws Exception {
@@ -74,7 +70,7 @@ class ItemShareRevocationIT extends ItemHttpTestSupport {
         revoke(owner, id, viewer.id()).andExpect(status().isNotFound());
         revoke(owner, UUID.randomUUID().toString(), viewer.id()).andExpect(status().isNotFound());
         share(owner, id, viewer.id(), "VIEWER").andExpect(status().isCreated());
-        jdbc.update("UPDATE items SET deleted = true WHERE id = UUID_TO_BIN(?)", id);
+        deleteItem(owner, id).andExpect(status().isNoContent());
         revoke(owner, id, viewer.id()).andExpect(status().isNotFound());
     }
 

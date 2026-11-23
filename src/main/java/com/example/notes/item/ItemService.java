@@ -1,5 +1,6 @@
 package com.example.notes.item;
 
+import com.example.notes.item.permission.ItemAccessPolicy;
 import com.example.notes.user.User;
 import com.example.notes.user.UserRepository;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
@@ -19,10 +20,12 @@ class ItemService {
 
     private final ItemRepository items;
     private final UserRepository users;
+    private final ItemAccessPolicy access;
 
-    ItemService(ItemRepository items, UserRepository users) {
+    ItemService(ItemRepository items, UserRepository users, ItemAccessPolicy access) {
         this.items = items;
         this.users = users;
+        this.access = access;
     }
 
     @Transactional
@@ -35,5 +38,12 @@ class ItemService {
     @Transactional(readOnly = true)
     List<ListedItem> list(UUID callerId) {
         return items.findVisibleTo(callerId).stream().sorted(LIST_ORDER).toList();
+    }
+
+    @Transactional
+    void delete(UUID callerId, UUID itemId) {
+        Item item = items.findByIdForUpdate(itemId).orElseThrow(ItemNotFoundException::new);
+        access.requireOwner(item, callerId);
+        items.delete(item);
     }
 }

@@ -11,13 +11,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ItemRepository extends Repository<Item, UUID> {
+
     Item save(Item item);
+
+    void flush();
 
     Optional<Item> findById(UUID id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from Item i where i.id = :id")
-    Optional<Item> findForPermissionChange(@Param("id") UUID id);
+    Optional<Item> findByIdForUpdate(@Param("id") UUID id);
 
     List<Item> findAllByOwnerId(UUID ownerId);
 

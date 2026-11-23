@@ -19,6 +19,6 @@ record CreateItemRequest(
     @JsonIgnore
     @AssertTrue(message = "Content exceeds the UTF-8 byte limit for a note.")
     public boolean isContentWithinStorageLimit() {
-        return content == null || content.getBytes(StandardCharsets.UTF_8).length <= MYSQL_TEXT_MAX_BYTES;
+        return ItemTextLimits.contentFits(content);
     }
 }
