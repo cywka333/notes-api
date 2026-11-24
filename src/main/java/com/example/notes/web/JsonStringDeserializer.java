@@ -1,4 +1,4 @@
-package com.example.notes.user;
+package com.example.notes.web;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;

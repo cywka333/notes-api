@@ -1,6 +1,6 @@
 package com.example.notes.item;
 
-import com.example.notes.user.JsonStringDeserializer;
+import com.example.notes.web.JsonStringDeserializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.AssertTrue;
