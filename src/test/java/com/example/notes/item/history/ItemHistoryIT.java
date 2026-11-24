@@ -1,4 +1,4 @@
-package com.example.notes.item;
+package com.example.notes.item.history;
 
 import com.example.notes.support.MySqlTestConfiguration;
 import com.fasterxml.jackson.databind.JsonNode;

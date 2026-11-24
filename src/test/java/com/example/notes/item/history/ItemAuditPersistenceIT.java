@@ -1,4 +1,4 @@
-package com.example.notes.item;
+package com.example.notes.item.history;
 
 import com.example.notes.item.model.Item;
 import com.example.notes.item.persistence.ItemRepository;
@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Import(MySqlTestConfiguration.class)
-class ItemRepositoryIT {
+class ItemAuditPersistenceIT {
 
     @Autowired
     private UserRepository users;

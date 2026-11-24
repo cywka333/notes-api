@@ -1,4 +1,4 @@
-package com.example.notes.item;
+package com.example.notes.item.history;
 
 import com.example.notes.item.model.Item;
 import com.example.notes.item.permission.ItemAccessPolicy;

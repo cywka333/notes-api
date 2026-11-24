@@ -1,4 +1,4 @@
-package com.example.notes.audit;
+package com.example.notes.item.history;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

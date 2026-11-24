@@ -1,4 +1,4 @@
-package com.example.notes.audit;
+package com.example.notes.item.history;
 
 import org.hibernate.envers.RevisionListener;
 import org.springframework.jdbc.core.JdbcTemplate;

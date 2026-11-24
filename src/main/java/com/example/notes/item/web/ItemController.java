@@ -1,7 +1,7 @@
 package com.example.notes.item.web;
 
-import com.example.notes.item.ItemHistoryEntry;
-import com.example.notes.item.ItemHistoryService;
+import com.example.notes.item.history.ItemHistoryEntry;
+import com.example.notes.item.history.ItemHistoryService;
 import com.example.notes.item.persistence.ListedItem;
 import com.example.notes.item.service.CreatedItem;
 import com.example.notes.item.service.ItemEditingService;
