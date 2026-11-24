@@ -22,14 +22,19 @@ class ItemEditingService {
         this.transactions = new TransactionTemplate(transactionManager);
     }
 
-    UpdatedItem edit(UUID itemId, UUID callerId, PatchItemRequest patch) {
+    UpdatedItem edit(UUID itemId, UUID callerId, EditItemCommand command) {
         try {
             return transactions.execute(status -> {
                 Item item = editableItem(itemId, callerId);
-                if (item.getVersion() != patch.version()) {
+                if (item.getVersion() != command.expectedVersion()) {
                     throw new ItemVersionConflictException(item.getVersion(), null);
                 }
-                patch.applyTo(item);
+                if (command.title() != null) {
+                    item.changeTitle(command.title());
+                }
+                if (command.contentPresent()) {
+                    item.changeContent(command.content());
+                }
                 items.flush();
                 return UpdatedItem.from(item);
             });

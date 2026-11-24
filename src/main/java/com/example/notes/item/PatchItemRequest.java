@@ -51,16 +51,7 @@ class PatchItemRequest {
         return ItemTextLimits.contentFits(content);
     }
 
-    int version() {
-        return version;
-    }
-
-    void applyTo(Item item) {
-        if (title != null) {
-            item.changeTitle(title);
-        }
-        if (contentPresent) {
-            item.changeContent(content);
-        }
+    EditItemCommand toCommand() {
+        return new EditItemCommand(version, title, contentPresent, content);
     }
 }

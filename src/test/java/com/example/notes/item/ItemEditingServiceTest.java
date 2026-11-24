@@ -5,7 +5,6 @@ import com.example.notes.item.permission.ItemPermission;
 import com.example.notes.item.permission.ItemPermissionRepository;
 import com.example.notes.item.permission.PermissionRole;
 import com.example.notes.user.User;
-import com.fasterxml.jackson.databind.node.IntNode;
 import jakarta.persistence.OptimisticLockException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,12 +61,12 @@ class ItemEditingServiceTest {
         }
 
         if (role.equals("OWNER") || role.equals("EDITOR")) {
-            UpdatedItem result = editing.edit(id, caller, patch(4));
+            UpdatedItem result = editing.edit(id, caller, changeTitle(4));
             assertThat(result.title()).isEqualTo("Changed");
             assertThat(result.content()).isEqualTo("Keep this");
             verify(items).flush();
         } else {
-            assertThatThrownBy(() -> editing.edit(id, caller, patch(4))).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> editing.edit(id, caller, changeTitle(4))).isInstanceOf(AccessDeniedException.class);
             assertThat(item.getTitle()).isEqualTo("Original");
             verify(items, never()).flush();
         }
@@ -76,14 +75,14 @@ class ItemEditingServiceTest {
     @Test
     void clientWithAnOldVersionGetsTheCurrentVersionBeforeAnyWrite() {
         assertThatExceptionOfType(ItemVersionConflictException.class)
-                .isThrownBy(() -> editing.edit(id, ownerId, patch(3)))
+                .isThrownBy(() -> editing.edit(id, ownerId, changeTitle(3)))
                 .satisfies(conflict -> assertThat(conflict.currentVersion()).isEqualTo(4));
         verify(items, never()).flush();
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void anOptimisticLockFailureRollsBackBeforeReadingTheVersionForHttp409(boolean springTranslated) {
+    void anOptimisticLockFailureRollsBackBeforeReadingTheCommittedVersion(boolean springTranslated) {
         RuntimeException failure = springTranslated
                 ? new OptimisticLockingFailureException("Concurrent write")
                 : new OptimisticLockException("Concurrent write");
@@ -93,12 +92,10 @@ class ItemEditingServiceTest {
         when(items.findById(id)).thenReturn(Optional.of(item)).thenReturn(Optional.of(committed));
 
         assertThatExceptionOfType(ItemVersionConflictException.class)
-                .isThrownBy(() -> editing.edit(id, ownerId, patch(4)))
+                .isThrownBy(() -> editing.edit(id, ownerId, changeTitle(4)))
                 .satisfies(conflict -> {
                     assertThat(conflict.getCause()).isSameAs(failure);
-                    var problem = new ItemExceptionHandler().versionConflict(conflict);
-                    assertThat(problem.getStatus()).isEqualTo(409);
-                    assertThat(problem.getProperties()).containsEntry("currentVersion", 5);
+                    assertThat(conflict.currentVersion()).isEqualTo(5);
                 });
 
         var order = inOrder(items, manager);
@@ -107,10 +104,7 @@ class ItemEditingServiceTest {
         order.verify(items).findById(id);
     }
 
-    private PatchItemRequest patch(int version) {
-        var patch = new PatchItemRequest();
-        patch.setVersion(IntNode.valueOf(version));
-        patch.setTitle("Changed");
-        return patch;
+    private EditItemCommand changeTitle(int expectedVersion) {
+        return new EditItemCommand(expectedVersion, "Changed", false, null);
     }
 }

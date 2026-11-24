@@ -40,7 +40,7 @@ class ItemController {
 
     @PatchMapping(path = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     UpdatedItem edit(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody PatchItemRequest patch) {
-        return editing.edit(id, UUID.fromString(jwt.getSubject()), patch);
+        return editing.edit(id, UUID.fromString(jwt.getSubject()), patch.toCommand());
     }
 
     @GetMapping
