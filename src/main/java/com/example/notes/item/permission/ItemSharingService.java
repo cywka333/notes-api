@@ -1,7 +1,7 @@
 package com.example.notes.item.permission;
 
-import com.example.notes.item.Item;
-import com.example.notes.item.ItemRepository;
+import com.example.notes.item.model.Item;
+import com.example.notes.item.persistence.ItemRepository;
 import com.example.notes.user.User;
 import com.example.notes.user.UserRepository;
 import org.springframework.stereotype.Service;
@@ -11,7 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-class ItemSharingService {
+public class ItemSharingService {
 
     private final ItemRepository items;
     private final ItemPermissionRepository permissions;
@@ -27,7 +27,7 @@ class ItemSharingService {
     }
 
     @Transactional
-    Result share(UUID itemId, UUID callerId, UUID recipientId, PermissionRole role) {
+    public Result share(UUID itemId, UUID callerId, UUID recipientId, PermissionRole role) {
         Item item = requireOwnedItemForPermissionChange(itemId, callerId);
         if (callerId.equals(recipientId)) {
             throw new SelfSharingException();
@@ -48,7 +48,7 @@ class ItemSharingService {
     }
 
     @Transactional
-    void revoke(UUID itemId, UUID callerId, UUID recipientId) {
+    public void revoke(UUID itemId, UUID callerId, UUID recipientId) {
         requireOwnedItemForPermissionChange(itemId, callerId);
         if (permissions.deleteGrant(itemId, recipientId) == 0) {
             throw new SharingTargetNotFoundException("Permission not found.");
@@ -62,6 +62,6 @@ class ItemSharingService {
         return item;
     }
 
-    record Result(GrantedPermission permission, boolean created) {
+    public record Result(GrantedPermission permission, boolean created) {
     }
 }

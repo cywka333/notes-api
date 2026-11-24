@@ -1,7 +1,7 @@
 package com.example.notes.item.permission;
 
-import com.example.notes.item.Item;
-import com.example.notes.item.ItemRepository;
+import com.example.notes.item.model.Item;
+import com.example.notes.item.persistence.ItemRepository;
 import com.example.notes.user.User;
 import com.example.notes.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
