@@ -1,14 +1,9 @@
 package com.example.notes.item;
 
-import com.example.notes.audit.ItemRevision;
 import com.example.notes.support.MySqlTestConfiguration;
 import com.example.notes.user.User;
 import com.example.notes.user.UserRepository;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import org.hibernate.envers.AuditReaderFactory;
 import org.hibernate.envers.RevisionType;
-import org.hibernate.envers.query.AuditEntity;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,8 +39,8 @@ class ItemRepositoryIT {
     private PlatformTransactionManager transactionManager;
     @Autowired
     private JdbcTemplate jdbc;
-    @PersistenceContext
-    private EntityManager entityManager;
+    @Autowired
+    private ItemHistoryRepository historyRepository;
 
     @AfterEach
     void clearAuthentication() {
@@ -83,9 +78,9 @@ class ItemRepositoryIT {
                 SELECT version FROM items WHERE id = UUID_TO_BIN(?) AND deleted = true
                 """, Integer.class, id.toString())).isEqualTo(2);
 
-        List<Change> changes = history(id);
-        assertThat(changes).extracting(Change::revision).isSorted().doesNotHaveDuplicates();
-        assertThat(changes).extracting(Change::type, Change::actor, Change::title, Change::content)
+        List<ItemHistoryEntry> changes = history(id);
+        assertThat(changes).extracting(ItemHistoryEntry::revision).isSorted().doesNotHaveDuplicates();
+        assertThat(changes).extracting(ItemHistoryEntry::revisionType, ItemHistoryEntry::changedBy, ItemHistoryEntry::title, ItemHistoryEntry::content)
                 .containsExactly(
                         tuple(RevisionType.ADD, owner.getLogin(), "First title", null),
                         tuple(RevisionType.MOD, editor.getLogin(), "Edited title", "Edited content"),
@@ -113,7 +108,7 @@ class ItemRepositoryIT {
         })).isInstanceOf(OptimisticLockingFailureException.class);
 
         assertThat(items.findById(id).orElseThrow().getTitle()).isEqualTo("Winner");
-        assertThat(history(id)).extracting(Change::type).containsExactly(RevisionType.ADD, RevisionType.MOD);
+        assertThat(history(id)).extracting(ItemHistoryEntry::revisionType).containsExactly(RevisionType.ADD, RevisionType.MOD);
     }
 
     @Test
@@ -134,23 +129,7 @@ class ItemRepositoryIT {
         SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
     }
 
-    private List<Change> history(UUID id) {
-        return new TransactionTemplate(transactionManager).execute(status -> {
-            List<?> rows = AuditReaderFactory.get(entityManager).createQuery()
-                    .forRevisionsOfEntity(Item.class, false, true)
-                    .add(AuditEntity.id().eq(id))
-                    .addOrder(AuditEntity.revisionNumber().asc())
-                    .getResultList();
-            return rows.stream().map(row -> {
-                Object[] values = (Object[]) row;
-                Item snapshot = (Item) values[0];
-                ItemRevision revision = (ItemRevision) values[1];
-                return new Change(revision.getId(), (RevisionType) values[2], revision.getChangedBy(),
-                        snapshot.getTitle(), snapshot.getContent());
-            }).toList();
-        });
-    }
-
-    private record Change(long revision, RevisionType type, String actor, String title, String content) {
+    private List<ItemHistoryEntry> history(UUID id) {
+        return new TransactionTemplate(transactionManager).execute(status -> historyRepository.findRevisions(id));
     }
 }

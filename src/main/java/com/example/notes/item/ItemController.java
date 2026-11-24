@@ -24,10 +24,12 @@ class ItemController {
 
     private final ItemService items;
     private final ItemEditingService editing;
+    private final ItemHistoryService history;
 
-    ItemController(ItemService items, ItemEditingService editing) {
+    ItemController(ItemService items, ItemEditingService editing, ItemHistoryService history) {
         this.items = items;
         this.editing = editing;
+        this.history = history;
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -44,6 +46,11 @@ class ItemController {
     @GetMapping
     List<ListedItem> list(@AuthenticationPrincipal Jwt jwt) {
         return items.list(UUID.fromString(jwt.getSubject()));
+    }
+
+    @GetMapping("/{id}/history")
+    List<ItemHistoryEntry> history(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        return history.getHistory(id, UUID.fromString(jwt.getSubject()));
     }
 
     @DeleteMapping("/{id}")
