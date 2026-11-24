@@ -1,0 +1,69 @@
+services:
+  credentials:
+    image: mysql:8.4.13
+    user: "0:0"
+    network_mode: none
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - |
+        set -o pipefail
+        umask 077
+        for file in /credentials/db/DB_PASSWORD /credentials/jwt/JWT_SECRET /credentials/root/MYSQL_ROOT_PASSWORD; do
+          if [ ! -s "$$file" ]; then
+            openssl rand -base64 32 | tr -d '\n' > "$$file.tmp"
+            chmod 0444 "$$file.tmp"
+            mv "$$file.tmp" "$$file"
+          fi
+        done
+    volumes:
+      - db-password:/credentials/db
+      - jwt-secret:/credentials/jwt
+      - root-password:/credentials/root
+
+  db:
+    image: mysql:8.4.13
+    depends_on:
+      credentials:
+        condition: service_completed_successfully
+    environment:
+      MYSQL_DATABASE: notes
+      MYSQL_USER: notes
+      MYSQL_PASSWORD_FILE: /credentials/db/DB_PASSWORD
+      MYSQL_ROOT_PASSWORD_FILE: /credentials/root/MYSQL_ROOT_PASSWORD
+      MYSQL_ROOT_HOST: localhost
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - db-password:/credentials/db:ro
+      - root-password:/credentials/root:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          MYSQL_PWD="$$(cat "$$MYSQL_PASSWORD_FILE")"
+          mysql --protocol=TCP --host=127.0.0.1 --connect-timeout=3
+          --user="$$MYSQL_USER" --database="$$MYSQL_DATABASE" --execute='SELECT 1' >/dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://db:3306/notes
+      DB_USERNAME: notes
+      SPRING_CONFIG_IMPORT: configtree:/credentials/db/,configtree:/credentials/jwt/
+    volumes:
+      - db-password:/credentials/db:ro
+      - jwt-secret:/credentials/jwt:ro
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+
+volumes:
+  mysql-data:
+  db-password:
+  jwt-secret:
+  root-password:
