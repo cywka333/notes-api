@@ -1,9 +1,11 @@
-package com.example.notes.item;
+package com.example.notes.item.service;
+
+import com.example.notes.item.model.Item;
 
 import java.time.Instant;
 import java.util.UUID;
 
-record CreatedItem(UUID id, String title, String content, Integer version, UUID ownerId,
+public record CreatedItem(UUID id, String title, String content, Integer version, UUID ownerId,
                    Instant createdAt, Instant updatedAt) {
 
     static CreatedItem from(Item item) {

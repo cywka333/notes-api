@@ -1,4 +1,4 @@
-package com.example.notes.item;
+package com.example.notes.item.web;
 
 import com.example.notes.item.permission.ItemAccessPolicy;
 import com.fasterxml.jackson.databind.JsonNode;

@@ -1,9 +1,11 @@
-package com.example.notes.item;
+package com.example.notes.item.service;
 
+import com.example.notes.item.model.Item;
 import com.example.notes.item.permission.ItemAccessPolicy;
 import com.example.notes.item.permission.ItemPermission;
 import com.example.notes.item.permission.ItemPermissionRepository;
 import com.example.notes.item.permission.PermissionRole;
+import com.example.notes.item.persistence.ItemRepository;
 import com.example.notes.user.User;
 import jakarta.persistence.OptimisticLockException;
 import org.junit.jupiter.api.BeforeEach;

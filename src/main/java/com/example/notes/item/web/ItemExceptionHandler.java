@@ -1,5 +1,6 @@
-package com.example.notes.item;
+package com.example.notes.item.web;
 
+import com.example.notes.item.service.ItemVersionConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;

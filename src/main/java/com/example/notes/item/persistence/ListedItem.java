@@ -1,4 +1,4 @@
-package com.example.notes.item;
+package com.example.notes.item.persistence;
 
 import java.time.Instant;
 import java.util.UUID;

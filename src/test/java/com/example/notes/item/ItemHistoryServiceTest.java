@@ -1,9 +1,12 @@
 package com.example.notes.item;
 
+import com.example.notes.item.model.Item;
 import com.example.notes.item.permission.ItemAccessPolicy;
 import com.example.notes.item.permission.ItemPermission;
 import com.example.notes.item.permission.ItemPermissionRepository;
 import com.example.notes.item.permission.PermissionRole;
+import com.example.notes.item.persistence.ItemRepository;
+import com.example.notes.item.service.ItemNotFoundException;
 import com.example.notes.user.User;
 import org.hibernate.envers.RevisionType;
 import org.junit.jupiter.api.BeforeEach;

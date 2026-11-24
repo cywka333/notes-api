@@ -1,5 +1,7 @@
 package com.example.notes.item;
 
+import com.example.notes.item.model.Item;
+import com.example.notes.item.persistence.ItemRepository;
 import com.example.notes.support.MySqlTestConfiguration;
 import com.example.notes.user.User;
 import com.example.notes.user.UserRepository;

@@ -1,6 +1,6 @@
-package com.example.notes.item;
+package com.example.notes.item.service;
 
-class ItemVersionConflictException extends RuntimeException {
+public class ItemVersionConflictException extends RuntimeException {
 
     private final int currentVersion;
 
@@ -9,7 +9,7 @@ class ItemVersionConflictException extends RuntimeException {
         this.currentVersion = currentVersion;
     }
 
-    int currentVersion() {
+    public int currentVersion() {
         return currentVersion;
     }
 }

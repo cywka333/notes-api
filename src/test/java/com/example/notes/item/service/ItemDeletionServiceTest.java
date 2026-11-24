@@ -1,6 +1,8 @@
-package com.example.notes.item;
+package com.example.notes.item.service;
 
+import com.example.notes.item.model.Item;
 import com.example.notes.item.permission.ItemAccessPolicy;
+import com.example.notes.item.persistence.ItemRepository;
 import com.example.notes.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;

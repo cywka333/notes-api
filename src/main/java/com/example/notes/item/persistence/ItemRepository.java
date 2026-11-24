@@ -1,5 +1,6 @@
-package com.example.notes.item;
+package com.example.notes.item.persistence;
 
+import com.example.notes.item.model.Item;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -25,7 +26,7 @@ public interface ItemRepository extends Repository<Item, UUID> {
     List<Item> findAllByOwnerId(UUID ownerId);
 
     @Query("""
-            select new com.example.notes.item.ListedItem(
+            select new com.example.notes.item.persistence.ListedItem(
                 i.id, i.title, i.content, i.version, i.owner.id,
                 case when i.owner.id = :callerId then 'OWNER' else cast(p.role as string) end,
                 i.updatedAt)

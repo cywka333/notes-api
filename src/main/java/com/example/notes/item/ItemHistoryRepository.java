@@ -1,5 +1,6 @@
 package com.example.notes.item;
 
+import com.example.notes.item.model.Item;
 import com.example.notes.audit.ItemRevision;
 import jakarta.persistence.EntityManager;
 import org.hibernate.envers.AuditReaderFactory;

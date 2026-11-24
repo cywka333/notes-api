@@ -1,5 +1,7 @@
-package com.example.notes.item;
+package com.example.notes.item.web;
 
+import com.example.notes.item.model.ItemTextLimits;
+import com.example.notes.item.service.EditItemCommand;
 import com.example.notes.web.JsonStringDeserializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;

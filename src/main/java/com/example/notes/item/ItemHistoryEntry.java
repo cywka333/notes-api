@@ -4,6 +4,6 @@ import org.hibernate.envers.RevisionType;
 
 import java.time.Instant;
 
-record ItemHistoryEntry(long revision, RevisionType revisionType, Instant timestamp,
+public record ItemHistoryEntry(long revision, RevisionType revisionType, Instant timestamp,
                         String changedBy, String title, String content) {
 }

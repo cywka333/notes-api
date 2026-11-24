@@ -1,4 +1,4 @@
-package com.example.notes.item;
+package com.example.notes.item.model;
 
 import com.example.notes.user.User;
 import jakarta.persistence.Column;

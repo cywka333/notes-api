@@ -1,6 +1,6 @@
 package com.example.notes.item.permission;
 
-import com.example.notes.item.Item;
+import com.example.notes.item.model.Item;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 

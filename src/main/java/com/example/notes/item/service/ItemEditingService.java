@@ -1,6 +1,8 @@
-package com.example.notes.item;
+package com.example.notes.item.service;
 
+import com.example.notes.item.model.Item;
 import com.example.notes.item.permission.ItemAccessPolicy;
+import com.example.notes.item.persistence.ItemRepository;
 import jakarta.persistence.OptimisticLockException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -10,7 +12,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.UUID;
 
 @Service
-class ItemEditingService {
+public class ItemEditingService {
 
     private final ItemRepository items;
     private final ItemAccessPolicy access;
@@ -22,7 +24,7 @@ class ItemEditingService {
         this.transactions = new TransactionTemplate(transactionManager);
     }
 
-    UpdatedItem edit(UUID itemId, UUID callerId, EditItemCommand command) {
+    public UpdatedItem edit(UUID itemId, UUID callerId, EditItemCommand command) {
         try {
             return transactions.execute(status -> {
                 Item item = editableItem(itemId, callerId);

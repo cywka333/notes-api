@@ -1,4 +1,4 @@
-package com.example.notes.item;
+package com.example.notes.item.web;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
