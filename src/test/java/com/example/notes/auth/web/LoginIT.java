@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.web;
 
 import com.example.notes.support.MySqlTestConfiguration;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -45,6 +46,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Import({MySqlTestConfiguration.class, LoginIT.ProtectedEndpoint.class})
 class LoginIT {
+
+    private static final String TOKEN_ISSUER = "urn:notes-api";
 
     @TestConfiguration(proxyBeanMethods = false)
     @RestController
@@ -127,7 +130,7 @@ class LoginIT {
 
     @Test
     void rejectsAnExpiredToken() throws Exception {
-        String expired = signedToken(encoder, JwtConfiguration.ISSUER, Instant.now().minusSeconds(5));
+        String expired = signedToken(encoder, TOKEN_ISSUER, Instant.now().minusSeconds(5));
         assertUnauthorized(expired);
     }
 
@@ -135,7 +138,7 @@ class LoginIT {
     void rejectsATokenSignedWithAnotherKey() throws Exception {
         var otherKey = KeyGenerator.getInstance("HmacSHA256").generateKey();
         JwtEncoder otherEncoder = new NimbusJwtEncoder(new ImmutableSecret<>(otherKey));
-        assertUnauthorized(signedToken(otherEncoder, JwtConfiguration.ISSUER, Instant.now().plusSeconds(60)));
+        assertUnauthorized(signedToken(otherEncoder, TOKEN_ISSUER, Instant.now().plusSeconds(60)));
     }
 
     @Test
@@ -150,7 +153,7 @@ class LoginIT {
                 .issuedAt(expiry.minusSeconds(3600))
                 .expiresAt(expiry)
                 .build();
-        var header = JwsHeader.with(JwtConfiguration.ALGORITHM).build();
+        var header = JwsHeader.with(MacAlgorithm.HS256).build();
         return signer.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
 

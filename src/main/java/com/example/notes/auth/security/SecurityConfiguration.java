@@ -1,5 +1,8 @@
-package com.example.notes.auth;
+package com.example.notes.auth.security;
 
+import com.example.notes.auth.ratelimit.LoginRateLimitFilter;
+import com.example.notes.auth.ratelimit.LoginRateLimitProperties;
+import com.example.notes.auth.ratelimit.LoginRateLimiter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.TimeMeter;
 import jakarta.servlet.DispatcherType;
@@ -24,6 +27,7 @@ class SecurityConfiguration {
     LoginRateLimiter loginRateLimiter(LoginRateLimitProperties properties) {
         return new LoginRateLimiter(properties, TimeMeter.SYSTEM_NANOTIME);
     }
+
     @Bean
     SecurityFilterChain apiSecurity(HttpSecurity http, LoginRateLimiter limiter, ObjectMapper json) throws Exception {
         return http

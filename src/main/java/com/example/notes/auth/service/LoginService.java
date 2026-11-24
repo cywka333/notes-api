@@ -1,5 +1,7 @@
-package com.example.notes.auth;
+package com.example.notes.auth.service;
 
+import com.example.notes.auth.security.AccessTokenService;
+import com.example.notes.auth.security.IssuedAccessToken;
 import com.example.notes.user.User;
 import com.example.notes.user.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -25,7 +27,7 @@ public class LoginService {
         this.dummyHash = passwords.encode(UUID.randomUUID().toString());
     }
 
-    LoginResponse login(String login, String password) {
+    public IssuedAccessToken login(String login, String password) {
         if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new BadCredentialsException("Invalid login or password.");
         }

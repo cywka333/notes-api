@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.web;
 
 import com.example.notes.web.JsonStringDeserializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;

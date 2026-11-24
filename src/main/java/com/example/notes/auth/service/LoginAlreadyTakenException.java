@@ -1,6 +1,6 @@
-package com.example.notes.auth;
+package com.example.notes.auth.service;
 
-class LoginAlreadyTakenException extends RuntimeException {
+public class LoginAlreadyTakenException extends RuntimeException {
 
     LoginAlreadyTakenException(Throwable cause) {
         super("Login is already taken", cause);

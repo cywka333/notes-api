@@ -1,5 +1,6 @@
-package com.example.notes.auth;
+package com.example.notes.auth.web;
 
+import com.example.notes.auth.service.LoginAlreadyTakenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;

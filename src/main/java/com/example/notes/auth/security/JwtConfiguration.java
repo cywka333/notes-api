@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +14,6 @@ import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -25,7 +24,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Configuration(proxyBeanMethods = false)
-public class JwtConfiguration {
+class JwtConfiguration {
 
     static final String ISSUER = "urn:notes-api";
     static final MacAlgorithm ALGORITHM = MacAlgorithm.HS256;

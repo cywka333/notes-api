@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.ratelimit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -17,14 +17,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.net.URI;
 
-final class LoginRateLimitFilter extends OncePerRequestFilter {
+public final class LoginRateLimitFilter extends OncePerRequestFilter {
 
-    static final RequestMatcher LOGIN = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/login");
+    public static final RequestMatcher LOGIN = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/login");
 
     private final LoginRateLimiter limiter;
     private final ObjectMapper json;
 
-    LoginRateLimitFilter(LoginRateLimiter limiter, ObjectMapper json) {
+    public LoginRateLimitFilter(LoginRateLimiter limiter, ObjectMapper json) {
         this.limiter = limiter;
         this.json = json;
     }

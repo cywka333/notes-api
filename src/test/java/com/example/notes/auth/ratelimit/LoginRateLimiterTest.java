@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.ratelimit;
 
 import io.github.bucket4j.TimeMeter;
 import org.junit.jupiter.api.Test;

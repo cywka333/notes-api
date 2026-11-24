@@ -1,5 +1,4 @@
-package com.example.notes.auth;
-
+package com.example.notes.auth.ratelimit;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
@@ -10,14 +9,14 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.SequencedMap;
 
-final class LoginRateLimiter {
+public final class LoginRateLimiter {
 
     private final SequencedMap<String, Client> clients = new LinkedHashMap<>();
     private final Bandwidth limit;
     private final long windowNanos;
     private final TimeMeter clock;
 
-    LoginRateLimiter(LoginRateLimitProperties properties, TimeMeter clock) {
+    public LoginRateLimiter(LoginRateLimitProperties properties, TimeMeter clock) {
         Duration period = Duration.ofSeconds(properties.windowSeconds());
         int attempts = properties.attempts();
         this.limit = Bandwidth.builder().capacity(attempts).refillIntervally(attempts, period).build();

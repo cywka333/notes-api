@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.ratelimit;
 
 import com.example.notes.support.MySqlTestConfiguration;
 import org.junit.jupiter.api.Test;

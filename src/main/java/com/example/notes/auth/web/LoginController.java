@@ -1,5 +1,7 @@
-package com.example.notes.auth;
+package com.example.notes.auth.web;
 
+import com.example.notes.auth.security.IssuedAccessToken;
+import com.example.notes.auth.service.LoginService;
 import jakarta.validation.Valid;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -18,8 +20,8 @@ class LoginController {
     }
 
     @PostMapping(path = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = loginService.login(request.login(), request.password());
+    ResponseEntity<IssuedAccessToken> login(@Valid @RequestBody LoginRequest request) {
+        IssuedAccessToken response = loginService.login(request.login(), request.password());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(response);
     }
 }

@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.web;
 
 import java.time.Instant;
 import java.util.UUID;

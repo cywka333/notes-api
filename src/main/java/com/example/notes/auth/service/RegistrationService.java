@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.service;
 
 import com.example.notes.user.User;
 import com.example.notes.user.UserRepository;
@@ -9,12 +9,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-class RegistrationService {
+public class RegistrationService {
 
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
 
-    public RegistrationService(UserRepository users, PasswordEncoder passwordEncoder) {
+    RegistrationService(UserRepository users, PasswordEncoder passwordEncoder) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
     }

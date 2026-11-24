@@ -1,4 +1,4 @@
-package com.example.notes.auth;
+package com.example.notes.auth.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.jwt.JwsHeader;
@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Service
-class AccessTokenService {
+public class AccessTokenService {
 
     private final JwtEncoder encoder;
     private final long ttlSeconds;
@@ -24,7 +24,7 @@ class AccessTokenService {
         this.ttlSeconds = ttlSeconds;
     }
 
-    LoginResponse issue(UUID userId) {
+    public IssuedAccessToken issue(UUID userId) {
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(JwtConfiguration.ISSUER)
@@ -34,6 +34,6 @@ class AccessTokenService {
                 .build();
         JwsHeader header = JwsHeader.with(JwtConfiguration.ALGORITHM).build();
         String token = encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
-        return new LoginResponse(token, ttlSeconds);
+        return new IssuedAccessToken(token, ttlSeconds);
     }
 }
