@@ -1,0 +1,137 @@
+# Copy this template outside the repository before filling in private values.
+# Set both demo passwords first. Send one numbered request at a time.
+@baseUrl = http://127.0.0.1:8080
+@ownerLogin = owner.demo01
+@guestLogin = guest.demo01
+@ownerPassword = SET_LOCALLY
+@guestPassword = SET_LOCALLY
+@guestId = COPY_FROM_03
+@ownerToken = COPY_FROM_04
+@guestToken = COPY_FROM_05
+@itemId = COPY_FROM_06
+@initialVersion = 0
+
+### 01 | Probe the API | expect 401
+# Leave Authorization empty. A response confirms the API is reachable.
+GET {{baseUrl}}/items
+
+### 02 | Register owner | expect 201
+# The response contains id, login and createdAt.
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{"login": "{{ownerLogin}}", "password": "{{ownerPassword}}"}
+
+### 03 | Register guest | expect 201
+# Copy id to guestId. Use the UUID, not the login.
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{"login": "{{guestLogin}}", "password": "{{guestPassword}}"}
+
+### 04 | Log in as owner | expect 200
+# Copy token to ownerToken. expiresIn is in seconds.
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{"login": "{{ownerLogin}}", "password": "{{ownerPassword}}"}
+
+### 05 | Log in as guest | expect 200
+# Copy token to guestToken. Keep the two tokens separate.
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{"login": "{{guestLogin}}", "password": "{{guestPassword}}"}
+
+### 06 | Create the release note | expect 201
+# Copy id to itemId and version to initialVersion (0 on creation). Keep this original version through step 13.
+POST {{baseUrl}}/items
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"title": "Release decision", "content": "Awaiting test results"}
+
+### 07 | Check privacy before sharing | expect 200
+# The new itemId is absent from guest’s list.
+GET {{baseUrl}}/items
+Authorization: Bearer {{guestToken}}
+
+### 08 | Give guest read access | expect 201
+# The response names guest’s userId, role VIEWER and grantedAt.
+POST {{baseUrl}}/items/{{itemId}}/share
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"userId": "{{guestId}}", "role": "VIEWER"}
+
+### 09 | Read as a viewer | expect 200
+# Find itemId. Its myRole is VIEWER.
+GET {{baseUrl}}/items
+Authorization: Bearer {{guestToken}}
+
+### 10 | Try to edit as a viewer | expect 403
+# The viewer can read the note but cannot change it.
+PATCH {{baseUrl}}/items/{{itemId}}
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{"version": {{initialVersion}}, "content": "Tests passed"}
+
+### 11 | Promote guest to editor | expect 200
+# The existing grant now has role EDITOR. Keep using the same guestToken.
+POST {{baseUrl}}/items/{{itemId}}/share
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"userId": "{{guestId}}", "role": "EDITOR"}
+
+### 12 | Save guest’s edit | expect 200
+# The note keeps its title. Its content is now Tests passed and version is 1.
+PATCH {{baseUrl}}/items/{{itemId}}
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{"version": {{initialVersion}}, "content": "Tests passed"}
+
+### 13 | Try owner’s stale edit | expect 409
+# Use the original version on purpose. The response includes currentVersion: 1.
+PATCH {{baseUrl}}/items/{{itemId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"version": {{initialVersion}}, "content": "Release approved"}
+
+### 14 | Read the winning change | expect 200
+# Find itemId, version 1, myRole OWNER and content Tests passed. Review before deciding whether to resubmit an edit.
+GET {{baseUrl}}/items
+Authorization: Bearer {{ownerToken}}
+
+### 15 | Read the history | expect 200
+# Two entries in revision order: ADD by owner, then MOD by guest. Compare changedBy, timestamp, title and content. Revision numbers can have gaps.
+GET {{baseUrl}}/items/{{itemId}}/history
+Authorization: Bearer {{guestToken}}
+
+### 16 | Revoke access | expect 204
+# The successful response has an empty body.
+DELETE {{baseUrl}}/items/{{itemId}}/share/{{guestId}}
+Authorization: Bearer {{ownerToken}}
+
+### 17 | Read history with the revoked token | expect 403
+# guest uses his still-valid token. The active note now denies him access.
+GET {{baseUrl}}/items/{{itemId}}/history
+Authorization: Bearer {{guestToken}}
+
+### 18 | Delete the note | expect 204
+# The owner soft-deletes the demo note.
+DELETE {{baseUrl}}/items/{{itemId}}
+Authorization: Bearer {{ownerToken}}
+
+### 19 | Check history after deletion | expect 404
+# The history endpoint requires an active note, even for its owner. The database retains the audit trail.
+GET {{baseUrl}}/items/{{itemId}}/history
+Authorization: Bearer {{ownerToken}}
+
+### 20 | Check the final list | expect 200
+# The deleted itemId is absent. Other notes owned by or shared with owner may still appear.
+GET {{baseUrl}}/items
+Authorization: Bearer {{ownerToken}}

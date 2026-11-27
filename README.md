@@ -4,89 +4,200 @@ A REST API for private and shared notes, built with Java 21, Spring Boot 3.5 and
 
 ## Run with Docker Compose
 
-1. Install Docker with the Compose plugin and start the Docker engine.
-2. Clone the repository and start the API and MySQL from the project root.
+Start Docker, clone this repository and open its root directory. Run `docker compose up --build` and wait for `Started NotesApplication`. The API is available at `http://127.0.0.1:8080`. Request 01 below checks that it is listening.
 
-   ```bash
-   git clone https://github.com/cywka333/notes-api.git
-   cd notes-api
-   docker compose up --build
-   ```
+Compose creates the database passwords and JWT signing key on first start. Only the API port is published, on the loopback interface. If you need a different port, set `API_PORT=8081` in a local `.env` file next to `docker-compose.yml` and adjust `baseUrl`. Stop the stack with Ctrl+C and `docker compose down`. Its named volumes retain accounts, notes and the signing key.
 
-3. Wait for `Started NotesApplication`. In a second terminal, check the protected endpoint.
+## Try the API with HTTP requests
 
-   ```bash
-   curl -i http://127.0.0.1:8080/items
-   ```
+Owner owns a release note. Guest first reads it, then edits it. The walkthrough ends with a conflicting edit, an audit lookup, revocation and deletion. Send one numbered request at a time.
 
-   Expect **401 Unauthorized** for this request without a token. The walkthrough below creates an account and makes authenticated requests.
+- **IntelliJ HTTP Client.** Copy [notes-api.http](examples/notes-api.http) to a private folder outside the checkout and open your copy in the IDE. Fill in the values at the top. Use the run icon beside each request.
+- **Postman.** Create a local environment with the variables below and select it. For each example choose the HTTP method, paste the URL, and add the listed headers. For JSON choose **Body → raw → JSON**. Use a single Authorization header per request. Leave it unset for steps 01–05.
 
-Compose generates the database passwords and JWT signing key on first start. MySQL is reachable inside the Compose network. Only the API port is published, on the loopback interface. If port 8080 is occupied, start with `API_PORT=8081 docker compose up --build` in Bash and use port 8081 in the requests. Stop the stack with Ctrl+C and `docker compose down`. The named volumes retain notes, accounts and the signing key for the next start.
+| Variable | Where to get its value                                                                                                                           |
+| --- |--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `baseUrl` | `http://127.0.0.1:8080` by default.                                                                                                              |
+| `ownerLogin`, `guestLogin` | Two fresh logins, e.g. `owner.demo01` and `guest.demo01`. Change the suffix for another run.                                                     |
+| `ownerPassword`, `guestPassword` | Choose two private demo passwords of 12–32 alphanumeric characters for easy substitution in JSON. Use the same values at registration and login. |
+| `guestId` | Guest’s `id` from step 03.                                                                                                                       |
+| `ownerToken`, `guestToken` | The raw `token` strings from steps 04 and 05, without quotes or the word Bearer.                                                                 |
+| `itemId`, `initialVersion` | The note’s `id` and numeric `version` from step 06. Keep the initial value for the conflict demonstration.                                       |
 
-## Try the API
+Copy response values manually to your local environment or private file. Keep passwords and tokens out of Git. Requests below use `{{variable}}` placeholders. In a client without variables, replace each placeholder with its value. An expected `401`, `403`, `404` or `409` is a successful demonstration of the corresponding rule.
 
-Run these blocks in order in the **same Bash session** (Git Bash also works). The examples use curl 7.82 or later, jq and OpenSSL. Set `BASE_URL` to your API address if you changed the port.
+### Identify the two users
 
-**1. Register an owner and an editor, then log in as both.** Registration returns a user ID. Login returns a bearer token and its lifetime in seconds (`expiresIn`). A random suffix lets you repeat the walkthrough against the same database.
+**01. Probe the API** — expect `401`. Leave Authorization empty. A response confirms the API is reachable.
 
-```bash
-BASE_URL=${BASE_URL:-http://127.0.0.1:8080}
-run_id=$(openssl rand -hex 4)
-account_json() {
-  jq -nc --arg login "$1.$run_id" --arg password "$(openssl rand -hex 16)" \
-    '{login: $login, password: $password}'
-}
-owner=$(account_json owner)
-editor=$(account_json editor)
-
-curl -fsS --json "$owner" "$BASE_URL/register" | jq
-editor_id=$(curl -fsS --json "$editor" "$BASE_URL/register" | jq -ej '.id')
-owner_token=$(curl -fsS --json "$owner" "$BASE_URL/login" | jq -ej '.token')
-editor_token=$(curl -fsS --json "$editor" "$BASE_URL/login" | jq -ej '.token')
+```http
+GET {{baseUrl}}/items
 ```
 
-**2. Create a note and grant the editor access.** Keep the initial version from the create response. The editor will submit it with the first edit.
+**02. Register owner** — expect `201`. The response contains id, login and createdAt.
 
-```bash
-created=$(curl -fsS -H "Authorization: Bearer $owner_token" \
-  --json '{"title":"Release checklist","content":"Run tests"}' "$BASE_URL/items")
-item_id=$(jq -ej '.id' <<< "$created")
-version=$(jq -ej '.version' <<< "$created")
-share=$(jq -nc --arg id "$editor_id" '{userId: $id, role: "EDITOR"}')
+```http
+POST {{baseUrl}}/register
+Content-Type: application/json
 
-curl -fsS -H "Authorization: Bearer $owner_token" \
-  --json "$share" "$BASE_URL/items/$item_id/share" | jq
-curl -fsS -H "Authorization: Bearer $editor_token" "$BASE_URL/items" | jq
+{"login": "{{ownerLogin}}", "password": "{{ownerPassword}}"}
 ```
 
-The editor's list now contains the note with `myRole: "EDITOR"`.
+**03. Register Guest** — expect `201`. Copy id to guestId. Use the UUID, not the login.
 
-**3. Edit the note, try a stale write, then inspect the history.**
+```http
+POST {{baseUrl}}/register
+Content-Type: application/json
 
-```bash
-patch=$(jq -nc --argjson v "$version" '{version: $v, content: "Tests passed"}')
-curl -fsS -X PATCH -H "Authorization: Bearer $editor_token" \
-  --json "$patch" "$BASE_URL/items/$item_id" | jq
-
-# The owner still holds the original version. This request returns 409.
-curl -sS -i -X PATCH -H "Authorization: Bearer $owner_token" \
-  --json "$patch" "$BASE_URL/items/$item_id"
-
-curl -fsS -H "Authorization: Bearer $owner_token" "$BASE_URL/items/$item_id/history" | jq
+{"login": "{{guestLogin}}", "password": "{{guestPassword}}"}
 ```
 
-The edit returns version `1`. The conflict response includes `"currentVersion": 1`. A client can reload the note through `GET /items`, review the new content and decide whether to reapply its changes. The history starts with an `ADD` snapshot by the owner, followed by a `MOD` snapshot by the editor. The rejected write produces no revision.
+**04. Log in as owner** — expect `200`. Copy token to ownerToken. expiresIn is in seconds.
 
-**4. Revoke access and delete the demo note.**
+```http
+POST {{baseUrl}}/login
+Content-Type: application/json
 
-```bash
-curl -sS -i -X DELETE -H "Authorization: Bearer $owner_token" \
-  "$BASE_URL/items/$item_id/share/$editor_id"
-curl -sS -i -H "Authorization: Bearer $editor_token" "$BASE_URL/items/$item_id/history"
-curl -sS -i -X DELETE -H "Authorization: Bearer $owner_token" "$BASE_URL/items/$item_id"
+{"login": "{{ownerLogin}}", "password": "{{ownerPassword}}"}
 ```
 
-Expect `204`, `403`, then `204`. Once the owner deletes the note, its history endpoint returns `404`. The database retains the audit trail.
+**05. Log in as Guest** — expect `200`. Copy token to guestToken. Keep the two tokens separate.
+
+```http
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{"login": "{{guestLogin}}", "password": "{{guestPassword}}"}
+```
+
+### Create a private note and share it
+
+**06. Create the release note** — expect `201`. Copy id to itemId and version to initialVersion (0 on creation). Keep this original version through step 13.
+
+```http
+POST {{baseUrl}}/items
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"title": "Release decision", "content": "Awaiting test results"}
+```
+
+**07. Check privacy before sharing** — expect `200`. The new itemId is absent from Guest’s list.
+
+```http
+GET {{baseUrl}}/items
+Authorization: Bearer {{guestToken}}
+```
+
+**08. Give Guest read access** — expect `201`. The response names Guest’s userId, role VIEWER and grantedAt.
+
+```http
+POST {{baseUrl}}/items/{{itemId}}/share
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"userId": "{{guestId}}", "role": "VIEWER"}
+```
+
+**09. Read as a viewer** — expect `200`. Find itemId. Its myRole is VIEWER.
+
+```http
+GET {{baseUrl}}/items
+Authorization: Bearer {{guestToken}}
+```
+
+**10. Try to edit as a viewer** — expect `403`. The viewer can read the note but cannot change it.
+
+```http
+PATCH {{baseUrl}}/items/{{itemId}}
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{"version": {{initialVersion}}, "content": "Tests passed"}
+```
+
+### Edit together and inspect the history
+
+**11. Promote Guest to editor** — expect `200`. The existing grant now has role EDITOR. Keep using the same guestToken.
+
+```http
+POST {{baseUrl}}/items/{{itemId}}/share
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"userId": "{{guestId}}", "role": "EDITOR"}
+```
+
+**12. Save Guest’s edit** — expect `200`. The note keeps its title. Its content is now Tests passed and version is 1.
+
+```http
+PATCH {{baseUrl}}/items/{{itemId}}
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{"version": {{initialVersion}}, "content": "Tests passed"}
+```
+
+**13. Try owner’s stale edit** — expect `409`. Use the original version on purpose. The response includes currentVersion: 1.
+
+```http
+PATCH {{baseUrl}}/items/{{itemId}}
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"version": {{initialVersion}}, "content": "Release approved"}
+```
+
+**14. Read the winning change** — expect `200`. Find itemId, version 1, myRole OWNER and content Tests passed. Review before deciding whether to resubmit an edit.
+
+```http
+GET {{baseUrl}}/items
+Authorization: Bearer {{ownerToken}}
+```
+
+**15. Read the history** — expect `200`. Two entries in revision order: ADD by owner, then MOD by Guest. Compare changedBy, timestamp, title and content. Revision numbers can have gaps.
+
+```http
+GET {{baseUrl}}/items/{{itemId}}/history
+Authorization: Bearer {{guestToken}}
+```
+
+### Revoke access and delete the demo note
+
+**16. Revoke access** — expect `204`. The successful response has an empty body.
+
+```http
+DELETE {{baseUrl}}/items/{{itemId}}/share/{{guestId}}
+Authorization: Bearer {{ownerToken}}
+```
+
+**17. Read history with the revoked token** — expect `403`. Guest uses his still-valid token. The active note now denies him access.
+
+```http
+GET {{baseUrl}}/items/{{itemId}}/history
+Authorization: Bearer {{guestToken}}
+```
+
+**18. Delete the note** — expect `204`. The owner soft-deletes the demo note.
+
+```http
+DELETE {{baseUrl}}/items/{{itemId}}
+Authorization: Bearer {{ownerToken}}
+```
+
+**19. Check history after deletion** — expect `404`. The history endpoint requires an active note, even for its owner. The database retains the audit trail.
+
+```http
+GET {{baseUrl}}/items/{{itemId}}/history
+Authorization: Bearer {{ownerToken}}
+```
+
+**20. Check the final list** — expect `200`. The deleted itemId is absent. Other notes owned by or shared with owner may still appear.
+
+```http
+GET {{baseUrl}}/items
+Authorization: Bearer {{ownerToken}}
+```
 
 ## Endpoint reference
 
@@ -134,16 +245,7 @@ The remaining settings in that file configure the framework. `spring.jpa.hiberna
 
 For Compose, `API_PORT` selects the published host port (default `8080`). Compose supplies the two application secrets through read-only files. To override the token lifetime or login limits in Compose, add the corresponding environment variables under `services.api.environment` in a Compose override file.
 
-To run the API directly with Maven, install **JDK 21**, start MySQL 8.4, and create the `notes` database and an application user with privileges to run Flyway migrations and read/write data in that database. With the default database name and user, run the following in Bash.
-
-```bash
-read -rsp 'MySQL password for notes: ' DB_PASSWORD && echo
-export DB_PASSWORD
-export JWT_SECRET=$(openssl rand -base64 32)
-./mvnw spring-boot:run
-```
-
-Generate the JWT key once for the session. Reuse the same key on subsequent starts to keep existing unexpired tokens valid. In PowerShell, use `.\mvnw.cmd` for Maven commands and set variables through `$env:`.
+To run directly from your IDE, install JDK 21 and start MySQL 8.4. Create the database and application user with permission to run Flyway migrations and read/write data. In a local run configuration for `NotesApplication`, set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` and `JWT_SECRET` as described above, then run the main class. Use a password manager or secure key generator for 32 random bytes encoded in Base64. Reuse that secret across starts to keep unexpired tokens valid. From a terminal with those variables already set, the equivalent command is `./mvnw spring-boot:run` (Windows PowerShell: `.\mvnw.cmd spring-boot:run`).
 
 ## Tests
 
